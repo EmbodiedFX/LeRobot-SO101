@@ -32,16 +32,17 @@ PY
 echo "front index: $FRONT_INDEX"
 echo "wrist index: $WRIST_INDEX"
 
-lerobot-record \
+python -m lerobot.rl.gym_manipulator \
   --env.robot.type=so101_follower \
   --env.robot.port=$FOLLOWER_PORT \
   --env.robot.id=my_awesome_follower_arm \
   --env.robot.cameras="{ front: {type: opencv, backend: 1200, index_or_path: $FRONT_INDEX, width: 640, height: 480, fps: 30}, wrist: {type: opencv, backend: 1200, index_or_path: $WRIST_INDEX, width: 640, height: 480, fps: 30}}" \
-  --env.teleop.type=so101_leader \
-  --env.teleop.port=$LEADER_PORT \
-  --env.teleop.id=my_awesome_leader_arm \
-  --env.teleop.use_gripper=true \
-  --env.processor.control_mode=leader \
+  --env.teleop.type=keyboard_ee \ 
+  --env.teleop.type=keyboard_ee \
+  --env.processor.inverse_kinematics.end_effector_bounds="{ min: [0.05, -0.20, 0.07], max: [0.39, 0.26, 0.37]}" \
+  --env.processor.inverse_kinematics.end_effector_step_sizes="{x: 0.02, y: 0.02, z: 0.02}" \
+  --env.processor.inverse_kinematics.urdf_path=$SO_PATH/Simulation/SO101/so101_new_calib.urdf \
+  --env.processor.control_mode=keyboard \
   --env.processor.observation.display_cameras=true \
   --env.processor.gripper.use_gripper=true \
   --env.processor.gripper.gripper_penalty=0 \
@@ -52,4 +53,3 @@ lerobot-record \
   --dataset.num_episodes_to_record=15 \
   --dataset.push_to_hub=False \
   --mode=record
-  
