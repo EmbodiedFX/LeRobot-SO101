@@ -9,7 +9,7 @@
 
 > 本教程主要参照[这个网页](https://huggingface.co/docs/lerobot/hilserl)制作。
 
-## 二、MacBook 上的环境准备
+## 二、MacBook 和机械臂上的环境准备
 
 在`lerobot`的 conda 环境里：
 
@@ -17,19 +17,17 @@
   ```bash
   pip install -e ".[hilserl]"
   ```
-2. 在[官方渠道]下载 SO101 机械臂的 URDF 文件，拷贝到`lerobot`项目目录，同时创建 `rl_config.json` 文件，通过以下方式：
+2. 在[官方渠道]下载 SO101 机械臂的 URDF 文件，拷贝到`lerobot`项目目录，通过以下方式：
   ```bash
   # 在`lerobot`项目外的一个路径
   git clone --branch main --single-branch git@github.com:TheRobotStudio/SO-ARM100.git
   export SO_PATH=<absolute path to SO-ARM100 root folder>
 
-  # 然后打开 lerobot 项目根目录
-  cp $SO_PATH/Simulation/SO101/so101_new_calib.urdf ./
-  cp -r $SO_PATH/Simulation/SO101/assets ./
-  vim rl_config.json  # 然后粘贴本仓库的 rl_config.json 全部内容，保存
+  # 然后回到 lerobot 项目根目录
   ```
 4. 然后，运行如下命令，显示`RECORDING STARTED`后，模拟机械臂完成任务会达到的各种状态，以探测机械臂的活动范围边界：
   ```bash
+  # 每用一个新的 Follower 机械臂都要做一次
   lerobot-find-joint-limits \
     --robot.type=so100_follower \
     --robot.port=$FOLLOWER_PORT \
@@ -41,26 +39,36 @@
   # urdf_path 参数中的 "./" 不能丢！否则会报错如“Error initializing kinematics: Mesh assets/base_motor_holder_so101_v1.stl could not be found.”
 
   # 最终的结果类似如下：
-  # ========================================
-  # FINAL RESULTS
-  # ========================================
+  ========================================
+  FINAL RESULTS
+  ========================================
   
-  # # End Effector Bounds (x, y, z):
-  # max_ee = [0.3684, 0.1136, 0.3975]
-  # min_ee = [0.0874, -0.1339, 0.0635]
+  # End Effector Bounds (x, y, z):
+  max_ee = [0.3976, 0.267, 0.3751]
+  min_ee = [0.0582, -0.2034, 0.0712]
   
-  # # Joint Position Limits (radians):
-  # max_pos = [62.9011, 47.956, 76.044, 101.2308, 50.5934, 96.2042]
-  # min_pos = [-56.2198, -67.3846, -89.2308, 14.989, 2.8571, 3.0105]
+  # Joint Position Limits (radians):
+  max_pos = [79.956, 70.2418, 92.7473, 102.1099, 47.6044, 15.8038]
+  min_pos = [-78.6374, -103.6484, -94.6813, 24.9231, -6.4615, 1.0218]
   ```
-5. 将上述得到的边界写入`rl_config.json`，如：
-  ```json
-  "end_effector_bounds": {
-    "max": [0.36, 0.11, 0.39],
-    "min": [0.08, -0.13, 0.06]
-  }
+5. 用上面`max_ee`和`min_ee`的数据更新脚本`rl_record_macos.sh`中的参数`env.processor.inverse_kinematics.end_effector_bounds`，如：
+  ```bash
+  --env.processor.inverse_kinematics.end_effector_bounds="{min: [0.05, -0.20, 0.03], max: [0.39, 0.26, 0.37]}"
   ```
 
 ## 三、离线数据集构建
 
+1. 将环境变量`RL_DATA_PATH`设置为目标数据集的路径（这个路径默认相对于`$HF_HOME/lerobot`，其中`$HF_HOME`默认为`$HOME/.cache/huggingface`）：
+```bash
+export RL_DATA_PATH=local/record-rl
+```
+2. 执行命令
+```bash
+chmod +x ./rl_record_macos.sh  # 只需跑一次
+./rl_record_macos.sh
+```
+
+## Remarks
+
+1. 要看`python -m lerobot.rl.gym_manipulator`接受的参数可以通过`python -m lerobot.rl.gym_manipulator --help`获取指引。同时，主要的参数在[此文档](https://huggingface.co/docs/lerobot/hilserl#understanding-configuration）也有提及。
 
